@@ -1,13 +1,3 @@
-# Comprehensive Data Cleaning Script in R
-# Author: Data Analyst
-# Purpose: Load, explore, and clean CSV data for vaccination analysis
-# Last Updated: 2025
-
-# =============================================================================
-# PACKAGE MANAGEMENT SETUP
-# =============================================================================
-
-# Define packages needed for the cleaning process
 required_packages <- c("dplyr",      # Data manipulation and transformation
                       "readr",       # Fast CSV reading/writing
                       "ggplot2",     # Data visualization (for potential plots)
