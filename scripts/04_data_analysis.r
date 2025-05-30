@@ -1,69 +1,64 @@
-# Data Analysis Script on the merged dataset
-# -----------------------------------------------------------
-# Analyse de la relation entre PIB par habitant et taux de vaccination COVID-19
-# -----------------------------------------------------------
+library(readr)      # pour lire les fichiers CSV
+library(dplyr)      # pour manipuler les données
+library(ggplot2)    # pour les visualisations
 
-packages <- c("dplyr", "ggplot2", "readr", "scales")
-installed <- packages %in% installed.packages()
-if(any(!installed)) install.packages(packages[!installed])
+data <- read.csv("C://Users//HP//Desktop//Analyse//merged_data.csv") 
 
-# 1. Chargement des bibliothèques nécessaires
-library(dplyr)
-library(ggplot2)
-library(readr)
-library(scales)
+View(data)
+glimpse(data)#afficher la structure du dataset
+summary(data)#resumé statistique par colonne
 
-# 2. Importation du jeu de données
-data <- read_csv("merged_data.csv", show_col_types = FALSE)
+#identification des variables importantes
+#(gdp_per_capita_usd) qui est le PIB par habitant
+#(peoplefullyvaccinatedperhundred) qui est le taux de vaccination 
+#et income pour différencier les pays riche des pays pauvres
+#Vérification de valeurs manquantes
+sum(is.na(data$gdp_per_capita_usd))
+sum(is.na(data$peoplevaccinatedperhundred))
 
-# 3. Préparation des données
-data_latest <- data %>%
-  group_by(isocode) %>%
-  filter(date == max(date)) %>%
-  ungroup()
+#Examination de la distribution du PIB par habitant
+summary(data$gdp_per_capita_usd)
+# Histogramme
+ggplot(data, aes(x =gdp_per_capita_usd )) +
+  geom_histogram(bins = 40, fill = "pink", color = "black") +
+  labs(title = "Histogramme du PIB par habitant", x = "PIB/habitant", y = "Fréquence(%)")
 
-# 4. Sélection des variables d'intérêt et nettoyage
-data_viz <- data_latest %>%
-  select(isocode, income, gdp_per_capita_usd, peoplefullyvaccinatedperhundred) %>%
-  filter(!is.na(gdp_per_capita_usd), 
-         !is.na(peoplefullyvaccinatedperhundred),
-         gdp_per_capita_usd > 0,
-         peoplefullyvaccinatedperhundred > 0)
+#Examination du taux de vacination 
+summary(data$peoplefullyvaccinatedperhundred)
+# Histogramme
+ggplot(data, aes(x =peoplefullyvaccinatedperhundred)) +
+  geom_histogram(bins = 40, fill = "pink", color = "black") +
+  labs(title = "Histogramme des taux de vaccination", x = "Taux de vaccination (%)")
 
-# 5. Analyse statistique de la relation
-cor_test <- cor.test(data_viz$gdp_per_capita_usd, data_viz$peoplefullyvaccinatedperhundred)
-print(cor_test)
-
-modele <- lm(peoplefullyvaccinatedperhundred ~ gdp_per_capita_usd, data = data_viz)
-print(summary(modele))
-
-# 6. Création de la visualisation graphique
-p <- ggplot(data_viz, aes(x = gdp_per_capita_usd, y = peoplefullyvaccinatedperhundred, color = income)) +
-  geom_point(size = 2, alpha = 0.8) +
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
-  scale_x_continuous(labels = comma) +
-  labs(
-    title = "Relation entre PIB par habitant et taux de vaccination COVID-19",
-    subtitle = "Données par pays - dernière année disponible",
-    x = "PIB par habitant (USD)",
-    y = "Taux de vaccination complet (%)",
-    color = "Niveau de revenu"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    plot.subtitle = element_text(size = 12),
-    legend.position = "bottom"
+#Catégorisation des pays selon le PIB
+data <- data %>%
+  mutate(
+    pib_categorie = case_when(
+      gdp_per_capita_usd < 1086 ~ "Low_income",
+      gdp_per_capita_usd < 4255 ~ "Lower_middle_income",
+      gdp_per_capita_usd < 13205 ~ "Upper middle income",
+      TRUE ~ "High_income"
+    )
+  )
+data %>%
+  group_by(pib_categorie) %>%
+  summarise(
+    nmb_pays = n(),
+    pib_moyen = mean(gdp_per_capita_usd, na.rm = TRUE),
+    taux_vacc_moyen = mean(peoplevaccinatedperhundred, na.rm = TRUE),
+    taux_vacc_median = median(peoplevaccinatedperhundred, na.rm = TRUE),
+    .groups = 'drop'
   )
 
-# Afficher le graphique dans la session R (si possible)
-print(p)
+# Tableau croisé
+table(data$pib_categorie)
 
-# 7. Sauvegarde du graphique en PNG pour visualisation dans VS Code
-ggsave("relation_pib_vaccination.png", plot = p, width = 9, height = 6)
+data %>%
+  group_by(pib_categorie) %>%
+  summarise(taux_moyen = mean(peoplevaccinatedperhundred, na.rm = TRUE)) %>%
+  ggplot(aes(x = pib_categorie, y = taux_moyen, fill = pib_categorie)) +
+  geom_col() +
+  labs(title = "Taux de vaccination moyen par catégorie de PIB")
 
-cat("Graphique sauvegardé dans 'relation_pib_vaccination.png'\n")
 
-# -----------------------------------------------------------
-# Fin du script
-# -----------------------------------------------------------
+
