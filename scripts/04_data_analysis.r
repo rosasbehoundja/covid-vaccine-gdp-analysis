@@ -2,7 +2,7 @@ library(readr)      # pour lire les fichiers CSV
 library(dplyr)      # pour manipuler les données
 library(ggplot2)    # pour les visualisations
 
-data <- read.csv("C://Users//HP//Desktop//Analyse//merged_data.csv") 
+data <- read.csv("../data/processed/merged_data.csv") 
 
 View(data)
 glimpse(data)#afficher la structure du dataset
